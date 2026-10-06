@@ -1,4 +1,9 @@
 error:
+    auth:
+        invalid_credentials: 'Adresse e-mail ou mot de passe incorrect.'
+        token_missing: "Jeton d'authentification introuvable."
+        token_invalid: "Jeton d'authentification invalide."
+        token_expired: 'Votre session a expiré, veuillez vous reconnecter.'
     http:
         400: 'La requête est invalide.'
         401: 'Une authentification est requise.'

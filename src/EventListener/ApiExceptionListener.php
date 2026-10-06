@@ -64,7 +64,8 @@ final class ApiExceptionListener
         }
 
         $headers = $exception instanceof HttpExceptionInterface ? $exception->getHeaders() : [];
-        $event->setResponse(new JsonResponse(['error' => $error], $error['code'], $headers));
+        $response = new JsonResponse(['error' => $error], $error['code'], $headers);
+        $event->setResponse($response->setEncodingOptions($response->getEncodingOptions() | \JSON_UNESCAPED_UNICODE));
     }
 
     /**

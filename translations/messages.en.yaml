@@ -1,4 +1,9 @@
 error:
+    auth:
+        invalid_credentials: 'Invalid email or password.'
+        token_missing: 'Authentication token not found.'
+        token_invalid: 'Invalid authentication token.'
+        token_expired: 'Your session has expired, please log in again.'
     http:
         400: 'The request is invalid.'
         401: 'Authentication is required.'
