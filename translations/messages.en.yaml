@@ -1,0 +1,11 @@
+error:
+    http:
+        400: 'The request is invalid.'
+        401: 'Authentication is required.'
+        403: 'You are not allowed to perform this action.'
+        404: 'The requested resource was not found.'
+        405: 'This HTTP method is not allowed on this resource.'
+        415: 'This content type is not supported, please send JSON.'
+        422: 'The submitted data is invalid.'
+        429: 'Too many requests, please try again later.'
+        500: 'An unexpected error occurred.'

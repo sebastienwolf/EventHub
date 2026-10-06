@@ -1,0 +1,11 @@
+error:
+    http:
+        400: 'La requête est invalide.'
+        401: 'Une authentification est requise.'
+        403: "Vous n'êtes pas autorisé à effectuer cette action."
+        404: "La ressource demandée n'existe pas."
+        405: "Cette méthode HTTP n'est pas autorisée sur cette ressource."
+        415: "Ce type de contenu n'est pas pris en charge, veuillez envoyer du JSON."
+        422: 'Les données envoyées sont invalides.'
+        429: 'Trop de requêtes, veuillez réessayer plus tard.'
+        500: "Une erreur inattendue s'est produite."
