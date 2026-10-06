@@ -1,0 +1,3 @@
+user:
+    email:
+        already_used: 'This email address is already used.'

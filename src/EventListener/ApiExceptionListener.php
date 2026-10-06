@@ -47,6 +47,7 @@ final class ApiExceptionListener
                 'code' => $exception->getStatusCode(),
                 'message' => $this->translator->trans($exception->getTranslationKey(), $exception->getParameters()),
             ],
+            $exception instanceof ValidationFailedException => $this->fromValidationFailure($exception),
             $exception instanceof HttpExceptionInterface => $this->fromHttpException($exception),
             default => [
                 'code' => Response::HTTP_INTERNAL_SERVER_ERROR,
@@ -71,22 +72,33 @@ final class ApiExceptionListener
      */
     private function fromHttpException(HttpExceptionInterface $exception): array
     {
-        $code = $exception->getStatusCode();
-        $error = ['code' => $code, 'message' => $this->translateStatus($code)];
-
         // #[MapRequestPayload] / #[MapQueryString] wrap validation errors in a 422 HttpException
         $previous = $exception instanceof \Throwable ? $exception->getPrevious() : null;
         if ($previous instanceof ValidationFailedException) {
-            $error['violations'] = array_map(
+            return $this->fromValidationFailure($previous, $exception->getStatusCode());
+        }
+
+        $code = $exception->getStatusCode();
+
+        return ['code' => $code, 'message' => $this->translateStatus($code)];
+    }
+
+    /**
+     * @return array{code: int, message: string, violations: list<array{property: string, message: string}>}
+     */
+    private function fromValidationFailure(ValidationFailedException $exception, int $code = Response::HTTP_UNPROCESSABLE_ENTITY): array
+    {
+        return [
+            'code' => $code,
+            'message' => $this->translateStatus($code),
+            'violations' => array_map(
                 static fn (ConstraintViolationInterface $violation): array => [
                     'property' => $violation->getPropertyPath(),
                     'message' => (string) $violation->getMessage(),
                 ],
-                iterator_to_array($previous->getViolations(), false),
-            );
-        }
-
-        return $error;
+                iterator_to_array($exception->getViolations(), false),
+            ),
+        ];
     }
 
     private function translateStatus(int $code): string

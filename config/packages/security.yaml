@@ -5,27 +5,50 @@ security:
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    # An admin can do everything an organizer can, who can do everything a participant can
+    role_hierarchy:
+        ROLE_ORGANIZER: ROLE_PARTICIPANT
+        ROLE_ADMIN: ROLE_ORGANIZER
 
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        main:
-            lazy: true
-            provider: users_in_memory
 
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
+        # POST /api/auth/login {"email": "...", "password": "..."} returns {"token": "..."}
+        login:
+            pattern: ^/api/auth/login$
+            stateless: true
+            provider: app_user_provider
+            json_login:
+                check_path: api_auth_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            # Brute-force protection backed by the RateLimiter component
+            login_throttling:
+                max_attempts: 5
+                interval: '1 minute'
 
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+        # Every other API call is authenticated with "Authorization: Bearer <token>"
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            jwt: ~
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/api/auth/(login|register)$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/events, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:
