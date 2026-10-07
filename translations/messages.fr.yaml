@@ -14,3 +14,11 @@ error:
         422: 'Les données envoyées sont invalides.'
         429: 'Trop de requêtes, veuillez réessayer plus tard.'
         500: "Une erreur inattendue s'est produite."
+
+event:
+    error:
+        cannot_publish: 'Seuls les événements en brouillon peuvent être publiés.'
+        cannot_cancel: 'Cet événement est déjà annulé.'
+        cannot_edit_cancelled: 'Un événement annulé ne peut plus être modifié.'
+        ends_before_start: "L'événement doit se terminer après son début."
+        capacity_below_registrations: 'La capacité ne peut pas être inférieure au nombre de participants inscrits (%count%).'

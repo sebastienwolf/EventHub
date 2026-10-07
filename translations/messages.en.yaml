@@ -14,3 +14,11 @@ error:
         422: 'The submitted data is invalid.'
         429: 'Too many requests, please try again later.'
         500: 'An unexpected error occurred.'
+
+event:
+    error:
+        cannot_publish: 'Only draft events can be published.'
+        cannot_cancel: 'This event is already cancelled.'
+        cannot_edit_cancelled: 'A cancelled event cannot be modified.'
+        ends_before_start: 'The event must end after it starts.'
+        capacity_below_registrations: 'The capacity cannot be lower than the number of registered participants (%count%).'

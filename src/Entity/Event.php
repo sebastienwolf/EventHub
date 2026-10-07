@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
@@ -61,13 +62,19 @@ abstract class Event extends TimestampableEntity
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
 
+    /** Nested user is serialized with its public fields only, whatever the parent groups. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['event:list', 'event:read'])]
+    #[Context(normalizationContext: ['groups' => ['user:public']])]
     private ?User $organizer = null;
 
-    /** @var Collection<int, Registration> */
-    #[ORM\OneToMany(targetEntity: Registration::class, mappedBy: 'event', orphanRemoval: true)]
+    /**
+     * EXTRA_LAZY: count() runs a COUNT query instead of loading every registration.
+     *
+     * @var Collection<int, Registration>
+     */
+    #[ORM\OneToMany(targetEntity: Registration::class, mappedBy: 'event', orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $registrations;
 
     public function __construct()
@@ -122,7 +129,7 @@ abstract class Event extends TimestampableEntity
 
     public function setStartsAt(\DateTimeImmutable $startsAt): static
     {
-        $this->startsAt = $startsAt;
+        $this->startsAt = $startsAt->setTimezone(new \DateTimeZone('UTC'));
 
         return $this;
     }
@@ -134,7 +141,7 @@ abstract class Event extends TimestampableEntity
 
     public function setEndsAt(\DateTimeImmutable $endsAt): static
     {
-        $this->endsAt = $endsAt;
+        $this->endsAt = $endsAt->setTimezone(new \DateTimeZone('UTC'));
 
         return $this;
     }
