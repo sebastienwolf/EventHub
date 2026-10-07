@@ -32,7 +32,11 @@ abstract class AbstractApiController extends AbstractController
      */
     protected function ok(mixed $data, array $groups = [], int $status = Response::HTTP_OK, array $headers = []): JsonResponse
     {
-        $context = [] !== $groups ? ['groups' => $groups] : [];
+        // AbstractController::json() overrides the serializer default context, so set the options here
+        $context = ['json_encode_options' => JsonResponse::DEFAULT_ENCODING_OPTIONS | \JSON_UNESCAPED_UNICODE];
+        if ([] !== $groups) {
+            $context['groups'] = $groups;
+        }
 
         return $this->json($data, $status, $headers, $context);
     }

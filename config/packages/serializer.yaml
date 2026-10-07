@@ -1,5 +1,0 @@
-framework:
-    serializer:
-        default_context:
-            # Keep accents readable in JSON responses ("é" instead of "é")
-            json_encode_options: !php/const JSON_UNESCAPED_UNICODE
