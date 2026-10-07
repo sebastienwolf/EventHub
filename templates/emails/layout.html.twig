@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="{{ app.locale|default('en') }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}EventHub{% endblock %}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+    <table role="presentation" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;">
+        <tr>
+            <td style="padding:24px 32px;border-bottom:1px solid #e4e7eb;font-size:20px;font-weight:bold;">EventHub</td>
+        </tr>
+        <tr>
+            <td style="padding:24px 32px;line-height:1.5;">
+                {% block content %}{% endblock %}
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:16px 32px;border-top:1px solid #e4e7eb;font-size:12px;color:#7b8794;">
+                {{ 'email.footer'|trans }}
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

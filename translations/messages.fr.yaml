@@ -29,3 +29,14 @@ registration:
         already_registered: 'Vous êtes déjà inscrit à cet événement.'
         event_not_open: 'Les inscriptions ne sont pas ouvertes pour cet événement.'
         not_registered: "Vous n'êtes pas inscrit à cet événement."
+
+email:
+    greeting: 'Bonjour %name%,'
+    footer: 'Vous recevez cet e-mail car vous possédez un compte EventHub.'
+    event:
+        when: 'Quand'
+        where: 'Où'
+    registration:
+        subject: 'Inscription confirmée : %title%'
+        body: "Votre inscription à l'événement suivant est confirmée :"
+        see_you: 'À bientôt !'

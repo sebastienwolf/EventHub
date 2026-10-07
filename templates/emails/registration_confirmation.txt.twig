@@ -1,0 +1,9 @@
+{{ 'email.greeting'|trans({'%name%': participant.firstName}) }}
+
+{{ 'email.registration.body'|trans }}
+
+{{ event.title }}
+{{ 'email.event.when'|trans }} : {{ event.startsAt|date('d/m/Y H:i', 'UTC') }} – {{ event.endsAt|date('H:i', 'UTC') }} (UTC)
+{{ 'email.event.where'|trans }} : {{ event.location }}
+
+{{ 'email.registration.see_you'|trans }}
