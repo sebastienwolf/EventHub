@@ -16,6 +16,8 @@ framework:
         routing:
             # Laravel "ShouldQueue" equivalent: every message implementing this interface is queued
             App\Message\AsyncMessageInterface: async
+            # Every email (Mailer and the Notifier email channel) is sent by the worker
+            Symfony\Component\Mailer\Messenger\SendEmailMessage: async
 
 when@test:
     framework:

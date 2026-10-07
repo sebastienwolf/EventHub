@@ -1,0 +1,9 @@
+{{ 'email.greeting'|trans({'%name%': organizer.firstName}) }}
+
+{{ 'email.new_registration.body'|trans({'%participant%': participant.fullName}) }}
+
+{{ event.title }}
+{{ 'email.event.when'|trans }} : {{ event.startsAt|date('d/m/Y H:i', 'UTC') }} – {{ event.endsAt|date('H:i', 'UTC') }} (UTC)
+{{ 'email.event.where'|trans }} : {{ event.location }}
+
+{{ 'email.new_registration.count'|trans({'%count%': event.registeredCount, '%capacity%': event.capacity ?? '∞'}) }}

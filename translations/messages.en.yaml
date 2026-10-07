@@ -40,3 +40,7 @@ email:
         subject: 'Registration confirmed: %title%'
         body: 'Your registration is confirmed for the following event:'
         see_you: 'See you there!'
+    new_registration:
+        subject: 'New registration: %title%'
+        body: '%participant% just registered to your event:'
+        count: 'Participants: %count% / %capacity%'

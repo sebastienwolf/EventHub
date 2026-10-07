@@ -1,5 +1,8 @@
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+        # The Notifier email channel requires an envelope sender
+        envelope:
+            sender: 'no-reply@eventhub.test'
         headers:
             From: 'EventHub <no-reply@eventhub.test>'

@@ -1,0 +1,8 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    <p>{{ 'email.greeting'|trans({'%name%': organizer.firstName}) }}</p>
+    <p>{{ 'email.new_registration.body'|trans({'%participant%': participant.fullName}) }}</p>
+    {{ include('emails/_event_details.html.twig') }}
+    <p>{{ 'email.new_registration.count'|trans({'%count%': event.registeredCount, '%capacity%': event.capacity ?? '∞'}) }}</p>
+{% endblock %}
