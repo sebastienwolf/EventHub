@@ -22,3 +22,10 @@ event:
         cannot_edit_cancelled: 'Un événement annulé ne peut plus être modifié.'
         ends_before_start: "L'événement doit se terminer après son début."
         capacity_below_registrations: 'La capacité ne peut pas être inférieure au nombre de participants inscrits (%count%).'
+
+registration:
+    error:
+        event_full: 'Cet événement est complet.'
+        already_registered: 'Vous êtes déjà inscrit à cet événement.'
+        event_not_open: 'Les inscriptions ne sont pas ouvertes pour cet événement.'
+        not_registered: "Vous n'êtes pas inscrit à cet événement."

@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\RegistrationRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: RegistrationRepository::class)]
@@ -13,11 +14,13 @@ class Registration extends TimestampableEntity
     #[ORM\ManyToOne(inversedBy: 'registrations')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['registration:read'])]
+    #[Context(normalizationContext: ['groups' => ['event:list']])]
     private Event $event;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['registration:read'])]
+    #[Context(normalizationContext: ['groups' => ['user:public']])]
     private User $participant;
 
     public function __construct(Event $event, User $participant)
