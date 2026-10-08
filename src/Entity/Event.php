@@ -146,6 +146,17 @@ abstract class Event extends TimestampableEntity
         return $this;
     }
 
+    /** Uses the global minutes_between() helper from src/helpers.php. */
+    #[Groups(['event:list', 'event:read'])]
+    public function getDurationInMinutes(): int
+    {
+        if (null === $this->startsAt || null === $this->endsAt) {
+            return 0;
+        }
+
+        return minutes_between($this->startsAt, $this->endsAt);
+    }
+
     public function getLocation(): ?string
     {
         return $this->location;

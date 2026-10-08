@@ -36,6 +36,7 @@ email:
     event:
         when: 'Quand'
         where: 'Où'
+        duration: 'Durée'
     registration:
         subject: 'Inscription confirmée : %title%'
         body: "Votre inscription à l'événement suivant est confirmée :"
@@ -47,3 +48,8 @@ email:
     reminder:
         subject: 'Rappel : %title% commence dans moins de 24 heures'
         body: "Petit rappel : l'événement suivant commence dans moins de 24 heures :"
+
+duration:
+    minutes: '%minutes% min'
+    hours: '%hours% h'
+    hours_minutes: '%hours% h %minutes%'

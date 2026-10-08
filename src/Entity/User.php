@@ -134,6 +134,13 @@ class User extends TimestampableEntity implements UserInterface, PasswordAuthent
         return trim($this->firstName.' '.$this->lastName);
     }
 
+    /** Uses the global str_initials() helper from src/helpers.php. */
+    #[Groups(['user:read', 'user:public'])]
+    public function getInitials(): string
+    {
+        return str_initials($this->getFullName());
+    }
+
     public function getLocale(): string
     {
         return $this->locale;

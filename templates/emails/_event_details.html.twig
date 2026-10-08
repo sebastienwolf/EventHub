@@ -1,5 +1,6 @@
 <table role="presentation" style="margin:16px 0;border-left:4px solid #3e63dd;padding-left:12px;">
     <tr><td><strong>{{ event.title }}</strong></td></tr>
     <tr><td>{{ 'email.event.when'|trans }} : {{ event.startsAt|date('d/m/Y H:i', 'UTC') }} – {{ event.endsAt|date('H:i', 'UTC') }} (UTC)</td></tr>
+    <tr><td>{{ 'email.event.duration'|trans }} : {{ event|duration }}</td></tr>
     <tr><td>{{ 'email.event.where'|trans }} : {{ event.location }}</td></tr>
 </table>
