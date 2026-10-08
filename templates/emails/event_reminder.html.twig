@@ -1,0 +1,8 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    <p>{{ 'email.greeting'|trans({'%name%': participant.firstName}) }}</p>
+    <p>{{ 'email.reminder.body'|trans }}</p>
+    {{ include('emails/_event_details.html.twig') }}
+    <p>{{ 'email.registration.see_you'|trans }}</p>
+{% endblock %}

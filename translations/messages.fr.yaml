@@ -44,3 +44,6 @@ email:
         subject: 'Nouvelle inscription : %title%'
         body: "%participant% vient de s'inscrire à votre événement :"
         count: 'Participants : %count% / %capacity%'
+    reminder:
+        subject: 'Rappel : %title% commence dans moins de 24 heures'
+        body: "Petit rappel : l'événement suivant commence dans moins de 24 heures :"
