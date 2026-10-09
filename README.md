@@ -137,6 +137,8 @@ php bin/phpunit
 - **Functional**: every endpoint through HTTP with real JWTs, Foundry factories and DAMA transaction rollback
 - **Integration**: reminder scheduling and localized emails
 
+To try the API by hand, open [requests.http](requests.http) with the VS Code [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension: every scenario is ready to send, in order.
+
 The same steps run on GitHub Actions ([ci.yml](.github/workflows/ci.yml)).
 
 ## Technical notes

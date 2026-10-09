@@ -1,0 +1,542 @@
+###############################################################################
+# EventHub API: every scenario, ready to run with the VS Code "REST Client"
+# extension (Huachao Mao). Click "Send Request" above each request.
+#
+# Before starting:
+#   docker compose up -d
+#   symfony serve -d
+#   php bin/console doctrine:fixtures:load -n      (demo accounts, password "password")
+#   php bin/console messenger:consume async -vv    (worker sending the emails)
+#   Emails: http://localhost:8025 (Mailpit)
+#
+# Run the requests IN ORDER: later requests reuse the token, id or slug
+# returned by earlier ones ({{requestName.response.body.$.field}}).
+#
+# Dates are computed at send time ({{$datetime iso8601 720 h}} = in 30 days),
+# so the file keeps working whatever today's date is.
+#
+# Registration is rate limited to 5 attempts per 15 minutes per IP.
+# Reset it with: php bin/console cache:pool:clear cache.rate_limiter
+###############################################################################
+
+@base = http://127.0.0.1:8000/api
+
+
+###############################################################################
+# 1. AUTHENTICATION
+###############################################################################
+
+### 1.1 Log in as the demo organizer -> 200 {"token": "..."}
+# @name loginOrganizer
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "organizer@eventhub.test",
+  "password": "password"
+}
+
+### 1.2 Log in as the demo participant -> 200
+# @name loginParticipant
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "participant@eventhub.test",
+  "password": "password"
+}
+
+### 1.3 Log in as the admin -> 200
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@eventhub.test",
+  "password": "password"
+}
+
+### 1.4 Wrong password -> 401, message in French
+POST {{base}}/auth/login
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "email": "organizer@eventhub.test",
+  "password": "wrong-password"
+}
+
+### 1.5 Register a new participant (unique email) -> 201
+# @name registerParticipant
+POST {{base}}/auth/register
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "email": "participant-{{$timestamp}}@eventhub.test",
+  "password": "password",
+  "firstName": "Grace",
+  "lastName": "Hopper"
+}
+
+### 1.6 Log in with the account created above -> 200
+# @name loginNewParticipant
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{registerParticipant.response.body.$.email}}",
+  "password": "password"
+}
+
+### 1.7 Register a new organizer -> 201, roles contain ROLE_ORGANIZER
+# @name registerOrganizer
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "organizer-{{$timestamp}}@eventhub.test",
+  "password": "password",
+  "firstName": "Linus",
+  "lastName": "Torvalds",
+  "accountType": "organizer"
+}
+
+### 1.8 Log in with the new organizer -> 200
+# @name loginOtherOrganizer
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{registerOrganizer.response.body.$.email}}",
+  "password": "password"
+}
+
+### 1.9 Invalid registration -> 422 with violations (in French)
+# Short password, blank first name, "admin" is not an allowed account type
+POST {{base}}/auth/register
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "email": "not-an-email",
+  "password": "short",
+  "firstName": "",
+  "lastName": "Doe",
+  "accountType": "admin"
+}
+
+### 1.10 Email already used -> 422 "This email address is already used."
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "organizer@eventhub.test",
+  "password": "password",
+  "firstName": "Ada",
+  "lastName": "Copy"
+}
+
+### 1.11 Current user -> 200
+GET {{base}}/me
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+
+### 1.12 Current user without token -> 401
+GET {{base}}/me
+Accept-Language: fr
+
+### 1.13 Current user with an invalid token -> 401
+GET {{base}}/me
+Authorization: Bearer this.is.not-a-valid-token
+
+
+###############################################################################
+# 2. PUBLIC CATALOG (no token needed)
+###############################################################################
+
+### 2.1 Upcoming published events, paginated -> 200 {"data": [...], "meta": {...}}
+GET {{base}}/events
+
+### 2.2 Workshops only, page 2, 3 per page
+GET {{base}}/events?type=workshop&page=2&limit=3
+
+### 2.3 Conferences only, responses in French
+GET {{base}}/events?type=conference
+Accept-Language: fr
+
+### 2.4 Invalid filter and limit -> 422
+GET {{base}}/events?type=party&limit=500
+Accept-Language: fr
+
+### 2.5 Event from the fixtures, found by its slug -> 200
+GET {{base}}/events/symfony-for-laravel-developers
+
+### 2.6 Unknown slug -> 404
+GET {{base}}/events/this-event-does-not-exist
+Accept-Language: fr
+
+
+###############################################################################
+# 3. ORGANIZER: CREATE AND MANAGE EVENTS
+###############################################################################
+
+### 3.1 Create a workshop (starts in 30 days, lasts 3 hours) -> 201, status "draft"
+# The slug is generated from the title, accents included
+# @name createWorkshop
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "type": "workshop",
+  "title": "Découvrir Symfony quand on vient de Laravel",
+  "description": "Atelier pratique : entités, contrôleurs, voters et Messenger.",
+  "startsAt": "{{$datetime iso8601 720 h}}",
+  "endsAt": "{{$datetime iso8601 723 h}}",
+  "location": "Bruxelles",
+  "capacity": 10,
+  "level": "beginner",
+  "prerequisites": "Connaître PHP 8 et les bases de Laravel"
+}
+
+### 3.2 Create a conference -> 201
+# @name createConference
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "type": "conference",
+  "title": "Symfony Day Liège",
+  "description": "A full day of talks about Symfony.",
+  "startsAt": "{{$datetime iso8601 1080 h}}",
+  "endsAt": "{{$datetime iso8601 1088 h}}",
+  "location": "Liège",
+  "speakers": ["Fabien Potencier", "Nicolas Grekas"]
+}
+
+### 3.3 Same title again -> 201 with a different slug ("...-2")
+# @name createDuplicateTitle
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "type": "conference",
+  "title": "Symfony Day Liège",
+  "description": "Second edition.",
+  "startsAt": "{{$datetime iso8601 1440 h}}",
+  "endsAt": "{{$datetime iso8601 1448 h}}",
+  "location": "Liège"
+}
+
+### 3.4 Workshop without level -> 422 (level is required for workshops only)
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "type": "workshop",
+  "title": "Workshop without level",
+  "description": "Missing level",
+  "startsAt": "{{$datetime iso8601 720 h}}",
+  "endsAt": "{{$datetime iso8601 722 h}}",
+  "location": "Namur"
+}
+
+### 3.5 Dates in the past and end before start -> 422
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "type": "conference",
+  "title": "Back to the past",
+  "description": "Invalid dates",
+  "startsAt": "{{$datetime iso8601 -24 h}}",
+  "endsAt": "{{$datetime iso8601 -48 h}}",
+  "location": "Mons"
+}
+
+### 3.6 Unknown type and empty body fields -> 422
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "type": "party",
+  "title": "",
+  "capacity": -5
+}
+
+### 3.7 A participant cannot create events -> 403
+POST {{base}}/events
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "type": "conference",
+  "title": "Not allowed",
+  "description": "Participants cannot organize",
+  "startsAt": "{{$datetime iso8601 720 h}}",
+  "endsAt": "{{$datetime iso8601 722 h}}",
+  "location": "Gand"
+}
+
+### 3.8 Without token -> 401
+POST {{base}}/events
+Content-Type: application/json
+
+{}
+
+### 3.9 Malformed JSON -> 400
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{"type": "workshop",
+
+### 3.10 Not JSON -> 415
+POST {{base}}/events
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: text/plain
+Accept-Language: fr
+
+Hello
+
+### 3.11 The draft is hidden from anonymous visitors -> 401
+GET {{base}}/events/{{createWorkshop.response.body.$.slug}}
+
+### 3.12 ... and from other users -> 403
+GET {{base}}/events/{{createWorkshop.response.body.$.slug}}
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+
+### 3.13 ... but visible to its organizer -> 200
+GET {{base}}/events/{{createWorkshop.response.body.$.slug}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 3.14 My events, drafts included -> 200
+GET {{base}}/me/events?limit=5
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 3.15 Partial update: rename -> 200, the slug follows the new title
+# @name renameWorkshop
+PATCH {{base}}/events/{{createWorkshop.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "title": "Symfony pour les développeurs Laravel",
+  "location": "Bruxelles - Gare Centrale"
+}
+
+### 3.16 End date before start date -> 422
+PATCH {{base}}/events/{{createWorkshop.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "endsAt": "{{$datetime iso8601 24 h}}"
+}
+
+### 3.17 Another organizer cannot modify it -> 403 (EventVoter)
+PATCH {{base}}/events/{{createWorkshop.response.body.$.id}}
+Authorization: Bearer {{loginOtherOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "title": "Hacked"
+}
+
+### 3.18 Publish -> 200, status "published"
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/publish
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 3.19 Publish again -> 409 (only drafts can be published)
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/publish
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Accept-Language: fr
+
+### 3.20 Now public, without token -> 200
+GET {{base}}/events/{{renameWorkshop.response.body.$.slug}}
+
+### 3.21 Unknown event id -> 404
+PATCH {{base}}/events/999999
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "title": "Ghost"
+}
+
+
+###############################################################################
+# 4. REGISTRATIONS
+# Each successful registration queues 2 emails (confirmation + organizer
+# notification): run the worker and check http://localhost:8025
+###############################################################################
+
+### 4.1 The participant registers to the workshop -> 201
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+
+### 4.2 Registering twice -> 409
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+Accept-Language: fr
+
+### 4.3 The new participant (1.5) registers too -> 201
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginNewParticipant.response.body.$.token}}
+
+### 4.4 The conference is still a draft: registrations closed -> 409
+POST {{base}}/events/{{createConference.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+Accept-Language: fr
+
+### 4.5 Seats left in the catalog: registeredCount / remainingSeats
+GET {{base}}/events/{{renameWorkshop.response.body.$.slug}}
+
+### 4.6 Participants list, for the organizer -> 200
+GET {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 4.7 Participants list, for a participant -> 403
+GET {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+Accept-Language: fr
+
+### 4.8 My registrations -> 200
+GET {{base}}/me/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+
+### 4.9 Capacity cannot go below the 2 registered participants -> 422
+PATCH {{base}}/events/{{createWorkshop.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "capacity": 1
+}
+
+### 4.10 Set the capacity to exactly 2 -> 200, the workshop is now full
+PATCH {{base}}/events/{{createWorkshop.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "capacity": 2
+}
+
+### 4.11 Another user registers to the full workshop -> 409 "This event is full."
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginOtherOrganizer.response.body.$.token}}
+
+### 4.12 The participant cancels the registration -> 204
+DELETE {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+
+### 4.13 Cancelling again -> 404
+DELETE {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginParticipant.response.body.$.token}}
+Accept-Language: fr
+
+### 4.14 A seat is free again: the other user can register -> 201
+POST {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginOtherOrganizer.response.body.$.token}}
+
+
+###############################################################################
+# 5. ADMIN
+###############################################################################
+
+### 5.1 The admin can modify any event -> 200
+PATCH {{base}}/events/{{createConference.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "speakers": ["Fabien Potencier", "Nicolas Grekas", "Ryan Weaver"]
+}
+
+### 5.2 ... and see any draft -> 200
+GET {{base}}/events/{{createConference.response.body.$.slug}}
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 5.3 ... and its participants -> 200
+GET {{base}}/events/{{createWorkshop.response.body.$.id}}/registrations
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+
+###############################################################################
+# 6. CANCEL AND DELETE
+###############################################################################
+
+### 6.1 Cancel the conference -> 200, status "cancelled"
+POST {{base}}/events/{{createConference.response.body.$.id}}/cancel
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 6.2 Cancel again -> 409
+POST {{base}}/events/{{createConference.response.body.$.id}}/cancel
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Accept-Language: fr
+
+### 6.3 A cancelled event cannot be modified -> 409
+PATCH {{base}}/events/{{createConference.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "title": "Back from the dead"
+}
+
+### 6.4 Another organizer cannot delete it -> 403
+DELETE {{base}}/events/{{createDuplicateTitle.response.body.$.id}}
+Authorization: Bearer {{loginOtherOrganizer.response.body.$.token}}
+
+### 6.5 Its organizer deletes it -> 204
+DELETE {{base}}/events/{{createDuplicateTitle.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+
+### 6.6 Deleted event -> 404
+DELETE {{base}}/events/{{createDuplicateTitle.response.body.$.id}}
+Authorization: Bearer {{loginOrganizer.response.body.$.token}}
+Accept-Language: fr
+
+
+###############################################################################
+# 7. RATE LIMITING
+# Send this request several times in a row: after 5 attempts in 15 minutes
+# (requests 1.5, 1.7, 1.9 and 1.10 already count) the API answers 429.
+###############################################################################
+
+### 7.1 Repeat until 429 Too Many Requests
+POST {{base}}/auth/register
+Content-Type: application/json
+Accept-Language: fr
+
+{
+  "email": "spam-{{$timestamp}}@eventhub.test",
+  "password": "password",
+  "firstName": "Spam",
+  "lastName": "Bot"
+}
+
+
+###############################################################################
+# 8. REMINDERS (console, not HTTP)
+# The fixtures contain "Symfony for Laravel developers", starting in ~20 hours:
+#   php bin/console app:reminders:send     -> queues one reminder per participant
+#   php bin/console messenger:consume async -vv
+# then open http://localhost:8025
+###############################################################################
